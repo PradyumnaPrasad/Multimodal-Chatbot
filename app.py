@@ -10,15 +10,15 @@ from dotenv import load_dotenv
 import sounddevice as sd
 import scipy.io.wavfile as wavfile
 
-# Load environment variables
+
 load_dotenv()
 genai.configure(api_key=os.getenv("API_KEY"))
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
 
-# Initialize Gemini model
+
 model = genai.GenerativeModel("gemini-1.5-flash")
 
-# Transcribe voice using Sarvam STT
+
 def transcribe_audio(file_path):
     url = "https://api.sarvam.ai/speech-to-text"
     headers = {
@@ -39,7 +39,7 @@ def transcribe_audio(file_path):
     else:
         return f"Error: {response.text}"
 
-# Record live voice input
+
 def record_voice(duration=5, sample_rate=16000):
     st.toast("🎙️ Recording...", icon="🎙️")
     audio = sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype="int16")
@@ -49,13 +49,13 @@ def record_voice(duration=5, sample_rate=16000):
     st.toast("✅ Done recording", icon="✅")
     return temp_file.name
 
-# Page configuration
+
 st.set_page_config(page_title=" Multimodal Chat", layout="wide")
 st.markdown("<h1 style='text-align: center;'> AI BREWERY Multimodal Chatbot</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center;'>Chat via <strong>Text</strong>, <strong>Voice</strong>, or <strong>Image</strong>!</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-# Initialize messages
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -82,7 +82,7 @@ with st.sidebar:
         else:
             st.warning("❌ Failed to transcribe audio.")
 
-# Chat UI
+
 st.subheader("💬 Chat with Gemini")
 with st.form(key="chat_form", clear_on_submit=True):
     user_text = st.text_input("", placeholder="Type your message here...", label_visibility="collapsed")
@@ -98,7 +98,7 @@ with st.form(key="chat_form", clear_on_submit=True):
             st.session_state.messages.append({"role": "assistant", "content": response.text})
         st.rerun()
 
-# Chat history
+
 st.markdown("---")
 st.markdown(" Conversation")
 chat_box = st.container()
@@ -122,6 +122,6 @@ with chat_box:
             unsafe_allow_html=True
         )
 
-# Optional footer
+
 st.markdown("---")
 st.markdown("<center>💡 Powered by Gemini API + Sarvam STT</center>", unsafe_allow_html=True)
