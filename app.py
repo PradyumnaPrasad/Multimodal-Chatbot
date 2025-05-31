@@ -5,7 +5,6 @@ import tempfile
 import requests
 import numpy as np
 from PIL import Image
-from pydub import AudioSegment
 from dotenv import load_dotenv
 import sounddevice as sd
 import scipy.io.wavfile as wavfile
