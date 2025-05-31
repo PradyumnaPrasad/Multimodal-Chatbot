@@ -1,27 +1,16 @@
 import streamlit as st
 import google.generativeai as genai
-import os
 import tempfile
 import requests
-import numpy as np
 from PIL import Image
-from dotenv import load_dotenv
 import sounddevice as sd
 import scipy.io.wavfile as wavfile
 
 
-load_dotenv()
-genai.configure(api_key=os.getenv("API_KEY"))
-SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
-
-
-model = genai.GenerativeModel("gemini-1.5-flash")
-
-
-def transcribe_audio(file_path):
+def transcribe_audio(file_path, sarvam_api_key):
     url = "https://api.sarvam.ai/speech-to-text"
     headers = {
-        "api-subscription-key": SARVAM_API_KEY,
+        "api-subscription-key": sarvam_api_key,
         "Accept": "application/json"
     }
     data = {
@@ -49,26 +38,40 @@ def record_voice(duration=5, sample_rate=16000):
     return temp_file.name
 
 
-st.set_page_config(page_title=" Multimodal Chat", layout="wide")
+st.set_page_config(page_title="Multimodal Chat", layout="wide")
+
 st.markdown("<h1 style='text-align: center;'> AI BREWERY Multimodal Chatbot</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center;'>Chat via <strong>Text</strong>, <strong>Voice</strong>, or <strong>Image</strong>!</p>", unsafe_allow_html=True)
 st.markdown("---")
 
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Sidebar
+# Sidebar inputs for API keys
 with st.sidebar:
+    st.markdown("## 🔑 Enter API Keys")
+    gemini_api_key = st.text_input("Gemini API Key", type="password")
+    sarvam_api_key = st.text_input("Sarvam STT API Key", type="password")
+    st.markdown("---")
     st.markdown("## 🛠️ Input Options")
     uploaded_image = st.file_uploader("🖼️ Upload Image", type=["jpg", "jpeg", "png"])
     if uploaded_image:
         st.image(uploaded_image, caption="Preview", use_container_width=True)
 
+if not gemini_api_key or not sarvam_api_key:
+    st.warning("Please enter both Gemini and Sarvam API keys to start chatting.")
+    st.stop()
+
+# Configure Gemini API with user-provided key
+genai.configure(api_key=gemini_api_key)
+model = genai.GenerativeModel("gemini-1.5-flash")
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Voice recording and transcription
+with st.sidebar:
     if st.button("🎤 Record Voice (5s)"):
         audio_path = record_voice()
-        transcript = transcribe_audio(audio_path)
-        if transcript:
+        transcript = transcribe_audio(audio_path, sarvam_api_key)
+        if transcript and not transcript.startswith("Error:"):
             st.session_state.messages.append({"role": "user", "content": transcript})
             contents = [transcript]
             if uploaded_image:
@@ -81,7 +84,7 @@ with st.sidebar:
         else:
             st.warning("❌ Failed to transcribe audio.")
 
-
+# Chat input and response
 st.subheader("💬 Chat with Gemini")
 with st.form(key="chat_form", clear_on_submit=True):
     user_text = st.text_input("", placeholder="Type your message here...", label_visibility="collapsed")
@@ -97,20 +100,19 @@ with st.form(key="chat_form", clear_on_submit=True):
             st.session_state.messages.append({"role": "assistant", "content": response.text})
         st.rerun()
 
-
+# Display conversation
 st.markdown("---")
 st.markdown(" Conversation")
 chat_box = st.container()
 with chat_box:
     for msg in st.session_state.messages:
         role = msg["role"]
-        # New colors: royal blue with white text for user, light gray with black text for assistant
         if role == "user":
-            bubble_color = "#4169E1"  # Royal blue for user
-            text_color = "white"       # White text
+            bubble_color = "#4169E1"
+            text_color = "white"
         else:
-            bubble_color = "#F1F0F0"  # Light gray for assistant
-            text_color = "black"       # Black text
+            bubble_color = "#F1F0F0"
+            text_color = "black"
         sender = "You" if role == "user" else "Chatbot"
         st.markdown(
             f"""
@@ -120,7 +122,6 @@ with chat_box:
             """,
             unsafe_allow_html=True
         )
-
 
 st.markdown("---")
 st.markdown("<center>💡 Powered by Gemini API + Sarvam STT</center>", unsafe_allow_html=True)
